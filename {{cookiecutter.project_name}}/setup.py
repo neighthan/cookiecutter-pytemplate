@@ -3,9 +3,13 @@ from pathlib import Path
 
 long_description = (Path(__file__).parent / "README.md").read_text()
 
+version = {}
+version_file = Path(__file__).parent / "{{cookiecutter.project_name|replace('-', '_')}}/_version.py"
+exec(version_file.read_text(), version)
+
 setuptools.setup(
     name="{{cookiecutter.project_name}}",
-    version="0.0.1",
+    version=version["__version__"],
     author="{{cookiecutter.full_name}}",
     author_email="{{cookiecutter.email}}",
     description="",
