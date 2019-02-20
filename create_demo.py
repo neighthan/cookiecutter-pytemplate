@@ -20,6 +20,7 @@ def create_demo(include_invoke):
         "github_username": "neighthan",
         "python_version": "3.7",
         "include_invoke_tasks": "y" if include_invoke else "n",
+        "skip_poetry_install": "y",
         "_copy_without_render": ["tasks.py"],
     }
 

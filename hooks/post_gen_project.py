@@ -10,3 +10,9 @@ if include_invoke_tasks == "n":
     Path("./tasks.py").unlink()
 
 run(["git", "init"])
+
+skip_poetry_install = "{{cookiecutter.skip_poetry_install}}"
+
+if skip_poetry_install != "y":
+    run(["poetry", "install"])
+    run(["poetry", "run", "pre-commit", "install"])

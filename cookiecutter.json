@@ -6,5 +6,6 @@
   "github_username": "",
   "python_version": "3.7",
   "include_invoke_tasks": "y",
+  "skip_poetry_install": "n",
   "_copy_without_render": ["tasks.py"]
 }
