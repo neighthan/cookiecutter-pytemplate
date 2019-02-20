@@ -21,6 +21,5 @@ toml = "^0.10.0"
 pytest = "^3.0"
 twine = "^1.13"
 {%- if cookiecutter.include_invoke_tasks == "y" %}
-cookiecutter = "^1.6"
 invoke = "^1.2"
 {%- endif %}

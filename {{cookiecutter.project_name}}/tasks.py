@@ -4,8 +4,9 @@ import toml
 import invoke
 from pathlib import Path
 from time import sleep
-from tempfile import TemporaryDirectory
-from cookiecutter.main import cookiecutter
+from typing import Sequence
+from urllib.request import urlopen
+from urllib.parse import quote
 from invoke.exceptions import UnexpectedExit
 
 _version_pattern = re.compile(
@@ -14,7 +15,9 @@ _version_pattern = re.compile(
 
 
 @invoke.task
-def upload(ctx, test: bool = False, install: bool = False, n_download_tries: int = 3) -> None:
+def upload(
+    ctx, test: bool = False, install: bool = False, n_download_tries: int = 3
+) -> None:
     """
     Assumptions:
     * the project is structured as <name>/<name'> where <name>
@@ -35,7 +38,7 @@ def upload(ctx, test: bool = False, install: bool = False, n_download_tries: int
       After each attempt there is a 5 second sleep period.
     """
 
-    project_name = "{{cookiecutter.project_name}}"
+    project_name = _get_from_pyproject(["tool", "poetry", "name"])
     project_root = str(Path(__file__).parent.resolve())
     sleep_time = 5
 
@@ -98,40 +101,15 @@ def update_tasks(ctx) -> None:
     """
     Update the tasks file to the newest version on GitHub.
 
-    `cookiecutter` is used to template the new tasks file based on the template values
-    saved in .cookiecutter.json when this project was originally created. If those
-    values have changed (e.g. the project name is different now), you should update
-    that file before using this task.
-
     :param ctx: invoke context
     """
 
-    # TODO - should we try to get the cookiecutter args from pyproject.toml instead
-    # saving + using .cookiecutter.json? This might help users have fewer locations
-    # to update something, though then we could encounter issues if tasks.py ever
-    # uses a template value that isn't saved in pyproject.toml.
+    tasks_path = Path(__file__).resolve()
+    github_url = "https://raw.githubusercontent.com/neighthan/cookiecutter-pytemplate/"
+    github_url += quote("master/{{cookiecutter.project_name}}/tasks.py")
 
-    with TemporaryDirectory() as tmp_dir:
-        cookiecutter_args = json.loads(
-            (Path(__file__).parent / ".cookiecutter.json").read_text()
-        )
-        cookiecutter_args["include_invoke_tasks"] = "y"
-
-        cookiecutter(
-            "gh:neighthan/cookiecutter-pytemplate",
-            output_dir=tmp_dir,
-            extra_context=cookiecutter_args,
-            no_input=True,
-        )
-        new_tasks_file = (
-            Path(tmp_dir) / cookiecutter_args["project_name"] / "tasks.py"
-        )
-
-        # using rename has given me OSError: invalid cross-device link
-        # so it's easier to just read + write
-
-        tasks_path = Path(__file__).resolve()
-        tasks_path.write_text(new_tasks_file.read_text())
+    with urlopen(github_url) as new_tasks_file:
+        tasks_path.write_text(new_tasks_file.read().decode())
 
 
 def _get_dev_num(project_name: str, current_version: str) -> int:
@@ -161,3 +139,11 @@ def _get_dev_num(project_name: str, current_version: str) -> int:
             dev_num = int(groups["suffix"].replace("dev", "")) + 1
             break
     return dev_num
+
+def _get_from_pyproject(keys: Sequence[str]):
+    pyproject = Path(__file__).parent / "pyproject.toml"
+    pyproject = toml.loads(pyproject.read_text())
+    ret = pyproject
+    for key in keys:
+        ret = ret[key]
+    return ret
