@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
+import re
 from pathlib import Path
+from subprocess import run
 from shutil import rmtree
 from cookiecutter.main import cookiecutter
 
@@ -27,6 +29,21 @@ def create_demo():
     template_path = Path(__file__).parent
 
     cookiecutter(str(template_path), extra_context=cookiecutter_args, no_input=True)
+
+    # now update the README with the (potentially new) structure
+    readme = Path(__file__).parent / "README.md"
+    readme_text = readme.read_text()
+    old_tree_output = re.search(r"```\{directory_structure\}.*?```", readme_text, re.DOTALL)
+
+    try:
+        new_tree_output = run(["tree", str(demo_path)], capture_output=True).stdout.decode()
+    except FileNotFoundError: # no tree command
+        return
+
+    new_tree_output = "\n".join(new_tree_output.splitlines()[:-2])
+    new_tree_output = "```{directory_structure}\n" + new_tree_output + "\n```"
+    readme_text = readme_text[:old_tree_output.start()] + new_tree_output + readme_text[old_tree_output.end():]
+    readme.write_text(readme_text)
 
 
 if __name__ == "__main__":
