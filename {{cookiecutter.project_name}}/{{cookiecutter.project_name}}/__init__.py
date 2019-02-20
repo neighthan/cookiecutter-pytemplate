@@ -1,6 +1,6 @@
 import toml
 from pathlib import Path
 
-__version__ = toml.load(str(Path(__file__).parents[1] / "pyproject.toml"))["tool"][
-    "poetry"
-]["version"]
+pyproject = toml.load(str(Path(__file__).parents[1] / "pyproject.toml"))
+__version__ = pyproject["tool"]["poetry"]["version"]
+del pyproject

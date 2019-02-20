@@ -1,5 +1,6 @@
 import re
 import invoke
+import toml
 from pathlib import Path
 from time import sleep
 from invoke.exceptions import UnexpectedExit
@@ -24,12 +25,6 @@ def upload(ctx, test: bool = False, n_download_tries: int = 3):
       repository: https://test.pypi.org/legacy/
     """
 
-    # TODO - don't upload if test is False and there are unstaged changes to
-    # tracked files unless --force is given
-
-    # TODO - add a git tag to the most recent commit that says what the version is
-    # https://stackoverflow.com/questions/4404172/how-to-tag-an-older-commit-in-git
-
     project_name = "{{cookiecutter.project_name}}"
     project_root = str(Path(__file__).parent.resolve())
     sleep_time = 5
@@ -39,32 +34,27 @@ def upload(ctx, test: bool = False, n_download_tries: int = 3):
         # this is because test.pypi still won't let you upload the same version
         # multiple times. Doing this automates changing the version for repeat testing
 
-        version = {}
-        version_path = (
-            Path(__file__).parent / project_name.replace("-", "_") / "_version.py"
-        )
-        exec(version_path.read_text(), version)
-        original_version = version["__version__"]
+        pyproject_path = Path(__file__).parent / "pyproject.toml"
+        original_pyproject_str = pyproject_path.read_text()
+        pyproject = toml.loads(original_pyproject_str)
+        original_version = pyproject["tool"]["poetry"]["version"]
 
         dev_num = _get_dev_num(project_name, original_version)
         version = re.fullmatch(_version_pattern, original_version)
         version = ".".join(version.groups()[:3]) + f"dev{dev_num}"
 
         # write back the modified version
-        version_path.write_text(f'__version__ = "{version}"\n')
+        pyproject["tool"]["poetry"]["version"] = version
+        pyproject_path.write_text(toml.dumps(pyproject))
 
     try:
-        # TODO - don't use rm -rf here; make this windows compatible too
-        # by pulling the directory removal into python
-
         cmd = f"""
         cd "{project_root}"
 
         rm -rf build
         rm -rf dist
 
-        pip install -U setuptools wheel twine
-        python setup.py sdist bdist_wheel
+        poetry build
         twine upload {'--repository testpypi' if test else ''} dist/*
 
         rm -rf build
@@ -74,7 +64,7 @@ def upload(ctx, test: bool = False, n_download_tries: int = 3):
         ctx.run(cmd)
     finally:
         if test:
-            version_path.write_text(f'__version__ = "{original_version}"\n')
+            pyproject_path.write_text(original_pyproject_str)
 
     if not test:
         return
@@ -115,7 +105,7 @@ def _get_dev_num(project_name: str, current_version: str) -> int:
             groups["major"] == current_version_groups["major"]
             and groups["minor"] == current_version_groups["minor"]
             and groups["micro"] == current_version_groups["micro"]
-            and groups["suffix"].startswith("dev")
+            and groups["suffix"] and groups["suffix"].startswith("dev")
         ):
             dev_num = int(groups["suffix"].replace("dev", "")) + 1
             break
