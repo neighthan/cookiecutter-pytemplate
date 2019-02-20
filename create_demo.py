@@ -34,16 +34,23 @@ def create_demo():
     # now update the README with the (potentially new) structure
     readme = Path(__file__).parent / "README.md"
     readme_text = readme.read_text()
-    old_tree_output = re.search(r"```\{directory_structure\}.*?```", readme_text, re.DOTALL)
+    old_tree_output = re.search(
+        r"```\{directory_structure\}.*?```", readme_text, re.DOTALL
+    )
 
     try:
-        new_tree_output = run(["tree", str(demo_path)], capture_output=True).stdout.decode()
-    except FileNotFoundError: # no tree command
+        result = run(["tree", "-a", str(demo_path)], capture_output=True)
+        new_tree_output = result.stdout.decode()
+    except FileNotFoundError:  # no tree command
         return
 
     new_tree_output = "\n".join(new_tree_output.splitlines()[:-2])
     new_tree_output = "```{directory_structure}\n" + new_tree_output + "\n```"
-    readme_text = readme_text[:old_tree_output.start()] + new_tree_output + readme_text[old_tree_output.end():]
+    readme_text = (
+        readme_text[: old_tree_output.start()]
+        + new_tree_output
+        + readme_text[old_tree_output.end() :]
+    )
     readme.write_text(readme_text)
 
 
