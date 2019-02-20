@@ -1,9 +1,11 @@
 import re
-import invoke
+import json
 import toml
+import invoke
 from pathlib import Path
 from time import sleep
-from urllib.request import urlretrieve
+from tempfile import TemporaryDirectory
+from cookiecutter.main import cookiecutter
 from invoke.exceptions import UnexpectedExit
 
 _version_pattern = re.compile(
@@ -96,12 +98,40 @@ def update_tasks(ctx) -> None:
     """
     Update the tasks file to the newest version on GitHub.
 
+    `cookiecutter` is used to template the new tasks file based on the template values
+    saved in .cookiecutter.json when this project was originally created. If those
+    values have changed (e.g. the project name is different now), you should update
+    that file before using this task.
+
     :param ctx: invoke context
     """
 
-    tasks_path = Path(__file__).resolve()
-    github_url = "https://raw.githubusercontent.com/neighthan/cookiecutter-pytemplate/{{cookiecutter.project_name}}/tasks.py"
-    new_tasks_file = urlretrieve(github_url, str(tasks_path))
+    # TODO - should we try to get the cookiecutter args from pyproject.toml instead
+    # saving + using .cookiecutter.json? This might help users have fewer locations
+    # to update something, though then we could encounter issues if tasks.py ever
+    # uses a template value that isn't saved in pyproject.toml.
+
+    with TemporaryDirectory() as tmp_dir:
+        cookiecutter_args = json.loads(
+            (Path(__file__).parent / ".cookiecutter.json").read_text()
+        )
+        cookiecutter_args["include_invoke_tasks"] = "y"
+
+        cookiecutter(
+            "gh:neighthan/cookiecutter-pytemplate",
+            output_dir=tmp_dir,
+            extra_context=cookiecutter_args,
+            no_input=True,
+        )
+        new_tasks_file = (
+            Path(tmp_dir) / cookiecutter_args["project_name"] / "tasks.py"
+        )
+
+        # using rename has given me OSError: invalid cross-device link
+        # so it's easier to just read + write
+
+        tasks_path = Path(__file__).resolve()
+        tasks_path.write_text(new_tasks_file.read_text())
 
 
 def _get_dev_num(project_name: str, current_version: str) -> int:
