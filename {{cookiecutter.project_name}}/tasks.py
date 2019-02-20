@@ -11,7 +11,7 @@ _version_pattern = re.compile(
 
 
 @invoke.task
-def upload(ctx, test: bool = False, n_download_tries: int = 3):
+def upload(ctx, test: bool = False, install: bool = False, n_download_tries: int = 3):
     """
     Assumptions:
     * the project is structured as <name>/<name'> where <name>
@@ -66,7 +66,7 @@ def upload(ctx, test: bool = False, n_download_tries: int = 3):
         if test:
             pyproject_path.write_text(original_pyproject_str)
 
-    if not test:
+    if not test or not install:
         return
 
     for i in range(n_download_tries):
