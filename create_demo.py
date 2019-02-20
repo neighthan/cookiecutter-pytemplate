@@ -20,6 +20,7 @@ def create_demo(include_invoke):
         "github_username": "neighthan",
         "python_version": "3.7",
         "include_invoke_tasks": "y" if include_invoke else "n",
+        "_copy_without_render": ["tasks.py"],
     }
 
     # using overwrite_if_exists led to hook failures, so just
@@ -42,7 +43,7 @@ def create_demo(include_invoke):
     )
 
     try:
-        result = run(["tree", "-a", str(demo_path)], capture_output=True)
+        result = run(["tree", "-a", str(demo_path), "-I", ".git"], capture_output=True)
         new_tree_output = result.stdout.decode()
     except FileNotFoundError:  # no tree command
         return
