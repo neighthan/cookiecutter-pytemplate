@@ -3,6 +3,7 @@ import invoke
 import toml
 from pathlib import Path
 from time import sleep
+from urllib.request import urlretrieve
 from invoke.exceptions import UnexpectedExit
 
 _version_pattern = re.compile(
@@ -88,6 +89,19 @@ def upload(ctx, test: bool = False, install: bool = False, n_download_tries: int
             break
         except UnexpectedExit:
             continue
+
+
+@invoke.task
+def update_tasks(ctx) -> None:
+    """
+    Update the tasks file to the newest version on GitHub.
+
+    :param ctx: invoke context
+    """
+
+    tasks_path = Path(__file__).resolve()
+    github_url = "https://raw.githubusercontent.com/neighthan/cookiecutter-pytemplate/{{cookiecutter.project_name}}/tasks.py"
+    new_tasks_file = urlretrieve(github_url, str(tasks_path))
 
 
 def _get_dev_num(project_name: str, current_version: str) -> int:
