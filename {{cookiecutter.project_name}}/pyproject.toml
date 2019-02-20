@@ -1,0 +1,18 @@
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
+
+[tool.poetry]
+name = "{{cookiecutter.project_name}}"
+description = "{{cookiecutter.description}}"
+version = "0.1.0"
+authors = ["{{cookiecutter.full_name}} <{{cookiecutter.email}}>"]
+license = "MIT"
+readme = "README.md"
+reppository = "https://github.com/{{cookiecutter.github_username}}/{{cookiecutter.project_name}}"
+
+[tool.poetry.dependencies]
+python = "^{{cookiecutter.python_version}}"
+
+[tool.poetry.dev-dependencies]
+pytest = "^3.0"
