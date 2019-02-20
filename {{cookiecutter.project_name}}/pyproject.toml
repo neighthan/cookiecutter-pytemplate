@@ -9,7 +9,9 @@ version = "0.1.0"
 authors = ["{{cookiecutter.full_name}} <{{cookiecutter.email}}>"]
 license = "MIT"
 readme = "README.md"
+{%- if cookiecutter.github_username %}
 repository = "https://github.com/{{cookiecutter.github_username}}/{{cookiecutter.project_name}}"
+{%- endif %}
 
 [tool.poetry.dependencies]
 python = "^{{cookiecutter.python_version}}"
