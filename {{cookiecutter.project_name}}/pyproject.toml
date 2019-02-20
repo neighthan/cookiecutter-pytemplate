@@ -13,6 +13,7 @@ reppository = "https://github.com/{{cookiecutter.github_username}}/{{cookiecutte
 
 [tool.poetry.dependencies]
 python = "^{{cookiecutter.python_version}}"
+toml = "^0.10.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^3.0"
