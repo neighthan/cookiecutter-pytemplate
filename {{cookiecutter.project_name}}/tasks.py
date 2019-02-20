@@ -1,11 +1,15 @@
 import re
+import invoke
 from pathlib import Path
 from time import sleep
-from invoke import task
 from invoke.exceptions import UnexpectedExit
 
+_version_pattern = re.compile(
+    r"(?P<major>\d+)\.(?P<minor>\d+)\.(?P<micro>\d+)(\.(?P<suffix>[A-z0-9]+))?"
+)
 
-@task
+
+@invoke.task
 def upload(ctx, test: bool = False, n_download_tries: int = 3):
     """
     Assumptions:
@@ -20,15 +24,6 @@ def upload(ctx, test: bool = False, n_download_tries: int = 3):
       repository: https://test.pypi.org/legacy/
     """
 
-    # TODO - in case version has a suffix besides dev, we should read the whole suffix
-    # replace it by dev<dev_num>, do the test, then write back the original suffix
-    # again. If the suffix isn't dev, though, we won't know what to set dev_num to
-    # so we'll need to run pip to check what the latest version is that has the same
-    # major.minor.micro and dev; then we can pull dev_num from that and increment
-    # pip install --index-url https://test.pypi.org/simple/ project-name==? then use re
-    # to parse out all versions; make a pattern from the regex below so you can use
-    # it in both places.
-
     # TODO - don't upload if test is False and there are unstaged changes to
     # tracked files unless --force is given
 
@@ -36,55 +31,47 @@ def upload(ctx, test: bool = False, n_download_tries: int = 3):
     # https://stackoverflow.com/questions/4404172/how-to-tag-an-older-commit-in-git
 
     project_name = "{{cookiecutter.project_name}}"
-    project_root = ""
+    project_root = str(Path(__file__).parent.resolve())
     sleep_time = 5
-
-    version = {}
-    version_path = (
-        Path(__file__).parent / project_name.replace("-", "_") / "_version.py"
-    )
-    exec(version_path.read_text(), version)
-    version = version["__version__"]
 
     if test:
         # add dev if lacking; increment dev number if present
         # this is because test.pypi still won't let you upload the same version
         # multiple times. Doing this automates changing the version for repeat testing
 
-        versions = re.fullmatch(
-            r"(?P<major>\d+)\.(?P<minor>\d+)\.(?P<micro>\d+)(dev(?P<dev_num>\d+))?",
-            version,
+        version = {}
+        version_path = (
+            Path(__file__).parent / project_name.replace("-", "_") / "_version.py"
         )
-        dev_num = versions.groupdict()["dev_num"]
-        if dev_num:
-            version = version.replace(f"dev{dev_num}", f"dev{int(dev_num) + 1}")
-        else:
-            version += "dev0"
-    else:
-        # remove dev if present
-        try:
-            version = version[: version.index("dev")]
-        except ValueError:
-            pass
+        exec(version_path.read_text(), version)
+        original_version = version["__version__"]
 
-    # write back the modified version
-    version_path.write_text(f'__version__ = "{version}"\n')
+        dev_num = _get_dev_num(project_name, original_version)
+        version = re.fullmatch(_version_pattern, original_version)
+        version = ".".join(version.groups()[:3]) + f"dev{dev_num}"
 
-    cmd = f"""
-    cd {project_root}
+        # write back the modified version
+        version_path.write_text(f'__version__ = "{version}"\n')
 
-    rm -rf build
-    rm -rf dist
+    try:
+        cmd = f"""
+        cd {project_root}
 
-    pip install -U setuptools wheel twine
-    python setup.py sdist bdist_wheel
-    twine upload {'--repository testpypi' if test else ''} dist/*
+        rm -rf build
+        rm -rf dist
 
-    rm -rf build
-    rm -rf dist
-    """
+        pip install -U setuptools wheel twine
+        python setup.py sdist bdist_wheel
+        twine upload {'--repository testpypi' if test else ''} dist/*
 
-    ctx.run(cmd)
+        rm -rf build
+        rm -rf dist
+        """
+
+        ctx.run(cmd)
+    finally:
+        if test:
+            version_path.write_text(f'__version__ = "{original_version}"\n')
 
     if not test:
         return
@@ -101,3 +88,32 @@ def upload(ctx, test: bool = False, n_download_tries: int = 3):
             break
         except UnexpectedExit:
             continue
+
+
+def _get_dev_num(project_name: str, current_version: str) -> int:
+    # 1. read the whole suffix
+    # 2. replace it by dev<dev_num>
+    # 3. build and publish
+    # 4. write back the original suffix
+    # to determine dev_num we run pip and find the latest version that has the same
+    # major.minor.micro and dev; then we increment by one.
+
+    cmd = f"pip install --index-url https://test.pypi.org/simple {project_name}==?"
+    result = invoke.run(cmd, warn=True, hide=True)
+
+    current_version = re.fullmatch(_version_pattern, current_version)
+    current_version_groups = current_version.groupdict()
+
+    dev_num = 0
+    # reverse so that we hit the latest version first
+    for published_version in list(re.finditer(_version_pattern, result.stderr))[::-1]:
+        groups = published_version.groupdict()
+        if (
+            groups["major"] == current_version_groups["major"]
+            and groups["minor"] == current_version_groups["minor"]
+            and groups["micro"] == current_version_groups["micro"]
+            and groups["suffix"].startswith("dev")
+        ):
+            dev_num = int(groups["suffix"].replace("dev", "")) + 1
+            break
+    return dev_num
