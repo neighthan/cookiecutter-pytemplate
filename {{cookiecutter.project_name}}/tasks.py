@@ -54,8 +54,11 @@ def upload(ctx, test: bool = False, n_download_tries: int = 3):
         version_path.write_text(f'__version__ = "{version}"\n')
 
     try:
+        # TODO - don't use rm -rf here; make this windows compatible too
+        # by pulling the directory removal into python
+
         cmd = f"""
-        cd {project_root}
+        cd "{project_root}"
 
         rm -rf build
         rm -rf dist
