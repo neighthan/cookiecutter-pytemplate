@@ -20,3 +20,6 @@ toml = "^0.10.0"
 [tool.poetry.dev-dependencies]
 pytest = "^3.0"
 twine = "^1.13"
+{%- if cookiecutter.include_invoke_tasks == "y" %}
+invoke = "^1.2"
+{%- endif %}

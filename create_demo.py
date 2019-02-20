@@ -16,6 +16,7 @@ def create_demo():
         "email": "neighthan.hunt@gmail.com",
         "github_username": "neighthan",
         "python_version": "3.7",
+        "include_invoke_tasks": "n",
     }
 
     # using overwrite_if_exists led to hook failures, so just
