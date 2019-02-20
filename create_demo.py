@@ -4,10 +4,13 @@ import re
 from pathlib import Path
 from subprocess import run
 from shutil import rmtree
+import click
 from cookiecutter.main import cookiecutter
 
 
-def create_demo():
+@click.command()
+@click.option("-i", "--include_invoke", default=False, is_flag=True)
+def create_demo(include_invoke):
     demo_name = "demo-project"
     cookiecutter_args = {
         "project_name": demo_name,
@@ -16,7 +19,7 @@ def create_demo():
         "email": "neighthan.hunt@gmail.com",
         "github_username": "neighthan",
         "python_version": "3.7",
-        "include_invoke_tasks": "n",
+        "include_invoke_tasks": "y" if include_invoke else "n",
     }
 
     # using overwrite_if_exists led to hook failures, so just
