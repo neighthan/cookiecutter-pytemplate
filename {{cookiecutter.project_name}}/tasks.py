@@ -82,13 +82,15 @@ def upload(
     if not test or not install:
         return
 
+    index_url = "--index-url https://test.pypi.org/simple"
+    extra_url = "--extra-index-url https://pypi.org/simple"  # for dependencies
     for i in range(n_download_tries):
         sleep(sleep_time)
         try:
             result = ctx.run(
                 f"""
                 cd
-                pip install --index-url https://test.pypi.org/simple/ {project_name}=={version}
+                pip install {index_url} {extra_url} {project_name}=={version}
                 """
             )
             break
