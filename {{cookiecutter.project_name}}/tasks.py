@@ -114,6 +114,21 @@ def update_tasks(ctx) -> None:
         tasks_path.write_text(new_tasks_file.read().decode())
 
 
+@invoke.task
+def clean(ctx) -> None:
+    """
+    Remove all .pyc/.pyo files and __pycache__ directories.
+    """
+
+    root_dir = Path(__file__).parent
+
+    for cache_file in root_dir.rglob("*.py[co]"):
+        cache_file.unlink()
+
+    for cache_dir in root_dir.rglob("__pycache__"):
+        cache_dir.rmdir()
+
+
 def _get_dev_num(project_name: str, current_version: str) -> int:
     # 1. read the whole suffix
     # 2. replace it by dev<dev_num>
