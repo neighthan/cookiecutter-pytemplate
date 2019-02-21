@@ -138,6 +138,22 @@ def clean(ctx) -> None:
         cache_dir.rmdir()
 
 
+@invoke.task
+def install(ctx, test: bool = False) -> None:
+    """
+    Install the latest version of the current project.
+
+    :param ctx: `invoke` context
+    :param test: whether to install from test pypi;
+      if so, `--pre` is used to allow dev versions
+    """
+
+    project_name = _get_from_pyproject(["tool", "poetry", "name"])
+    cmd = "pip install -U {} " + project_name
+    cmd = cmd.format(" ".join([_index_url, _extra_url, "--pre"]) if test else "")
+    ctx.run(cmd)
+
+
 def _get_next_dev_num(project_name: str, current_version: str) -> int:
     """
     Get 1 + the number of the latest dev version matching `current_version` w/o suffix.
