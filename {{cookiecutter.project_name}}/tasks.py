@@ -1,3 +1,11 @@
+"""
+Assumptions:
+* the project is structured as <name>/<name'> where <name>
+  is the project name and <name'> is the same as <name> except with any "-"
+  replaced by "_". `tasks.py` should be stored in <name>.
+  If you cloned this from gh:neighthan/cookiecutter-pytemplate, the structure is right.
+"""
+
 import re
 import json
 import toml
@@ -12,28 +20,35 @@ from invoke.exceptions import UnexpectedExit
 _version_pattern = re.compile(
     r"(?P<major>\d+)\.(?P<minor>\d+)\.(?P<micro>\d+)(\.(?P<suffix>[A-z0-9]+))?"
 )
+_index_url = "--index-url https://test.pypi.org/simple"
+_extra_url = "--extra-index-url https://pypi.org/simple"  # for dependencies
 
 
 @invoke.task
-def upload(
+def publish(
     ctx, test: bool = False, install: bool = False, n_download_tries: int = 3
 ) -> None:
     """
-    Assumptions:
-    * the project is structured as <name>/<name'> where <name>
-      is the project name and <name'> is the same as <name> except with any "-"
-      replaced by "_". `tasks.py` should be stored in <name>.
-    * the version is stored in <name>/<name'>/_version.py and that
-      this file only contains `__version__ = "<version>"` where <version> is of the
-      format major.minor.micro (with optional suffix such as dev0).
-    * If you use the test flag, you have at least the following in `~/.pypirc`:
+    Publish the project to pypi / testpypi.
+
+    If you use the test flag, you have at least the following in `~/.pypirc`:
       [testpypi]
       repository: https://test.pypi.org/legacy/
 
     :param ctx: invoke context
-    :param test: whether to upload to normal or test pypi
+    :param test: whether to publish to normal or test pypi. If publishing to testpypi,
+      .dev<dev_num> is added to the version where <dev_num> is one larger than the
+      highest dev version published. This is because testpypi won't let you publish the
+      same version multiple times; doing this automates changing the version for repeat
+      publishing + testing.
+      Additionally, the micro/patch version is incremented because it's assumed that
+      it's a dev version of the _next_ release.
+      WARNING - don't publish multiple times too quickly. If so, the next dev num
+      can't be pulled from testpypi because it won't have updated yet.
     :param install: whether to install the project from test pypi.
-      Only used if `test` is true.
+      Only used if `test` is true. This is better than running `invoke install`
+      separately because it will try multiple times to get the newly uploaded version
+      (it usually takes a couple of tries).
     :param n_download_tries: how many times to attempt to install the project.
       After each attempt there is a 5 second sleep period.
     """
@@ -43,18 +58,17 @@ def upload(
     sleep_time = 5
 
     if test:
-        # add dev if lacking; increment dev number if present
-        # this is because test.pypi still won't let you upload the same version
-        # multiple times. Doing this automates changing the version for repeat testing
-
         pyproject_path = Path(__file__).parent / "pyproject.toml"
         original_pyproject_str = pyproject_path.read_text()
         pyproject = toml.loads(original_pyproject_str)
         original_version = pyproject["tool"]["poetry"]["version"]
 
-        dev_num = _get_dev_num(project_name, original_version)
         version = re.fullmatch(_version_pattern, original_version)
-        version = ".".join(version.groups()[:3]) + f"dev{dev_num}"
+        groups = version.groupdict()
+        major, minor, micro = groups["major"], groups["minor"], groups["micro"]
+        version = f"{major}.{minor}.{int(micro) + 1}"
+        dev_num = _get_next_dev_num(project_name, version)
+        version += f".dev{dev_num}"
 
         # write back the modified version
         pyproject["tool"]["poetry"]["version"] = version
@@ -82,16 +96,11 @@ def upload(
     if not test or not install:
         return
 
-    index_url = "--index-url https://test.pypi.org/simple"
-    extra_url = "--extra-index-url https://pypi.org/simple"  # for dependencies
     for i in range(n_download_tries):
         sleep(sleep_time)
         try:
             result = ctx.run(
-                f"""
-                cd
-                pip install {index_url} {extra_url} {project_name}=={version}
-                """
+                f"pip install {_index_url} {_extra_url} {project_name}=={version}"
             )
             break
         except UnexpectedExit:
@@ -129,15 +138,15 @@ def clean(ctx) -> None:
         cache_dir.rmdir()
 
 
-def _get_dev_num(project_name: str, current_version: str) -> int:
-    # 1. read the whole suffix
-    # 2. replace it by dev<dev_num>
-    # 3. build and publish
-    # 4. write back the original suffix
-    # to determine dev_num we run pip and find the latest version that has the same
-    # major.minor.micro and dev; then we increment by one.
+def _get_next_dev_num(project_name: str, current_version: str) -> int:
+    """
+    Get 1 + the number of the latest dev version matching `current_version` w/o suffix.
 
-    cmd = f"pip install --index-url https://test.pypi.org/simple {project_name}==?"
+    To determine next dev_num we run pip and find the latest version that has the same
+    major.minor.micro as `current_version` and dev in the suffix, then we increment.
+    """
+
+    cmd = f"pip install {_index_url} {project_name}==?"
     result = invoke.run(cmd, warn=True, hide=True)
 
     current_version = re.fullmatch(_version_pattern, current_version)
@@ -156,6 +165,7 @@ def _get_dev_num(project_name: str, current_version: str) -> int:
             dev_num = int(groups["suffix"].replace("dev", "")) + 1
             break
     return dev_num
+
 
 def _get_from_pyproject(keys: Sequence[str]):
     pyproject = Path(__file__).parent / "pyproject.toml"
