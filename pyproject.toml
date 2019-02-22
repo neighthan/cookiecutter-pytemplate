@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "cookiecutter-pytemplate"
+description = "`cookiecutter` template for Python projects"
+version = "0.1.0"
+authors = ["Nathan Hunt <neighthan.hunt@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/neighthan/cookiecutter-pytemplate"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+toml = "^0.10.0"
+
+[tool.poetry.dev-dependencies]
+pre-commit = "^1.14"
+pytest = "^3.0"
+pytest-cov = "^2.6"
+invoke = {git = "https://github.com/neighthan/invoke.git"}
