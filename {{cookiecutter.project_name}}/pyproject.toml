@@ -23,5 +23,5 @@ pytest = "^3.0"
 pytest-cov = "^2.6"
 twine = "^1.13"
 {%- if cookiecutter.include_invoke_tasks == "y" %}
-invoke = "^1.2"
+invoke = {git = "https://github.com/neighthan/invoke.git"}
 {%- endif %}

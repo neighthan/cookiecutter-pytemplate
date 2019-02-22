@@ -5,7 +5,7 @@ import pytest
 tasks_dir = Path(__file__).parents[1] / "{{cookiecutter.project_name}}"
 sys.path.append(str(tasks_dir))
 
-from tasks import _get_dev_num
+from tasks import _get_next_dev_num
 
 
 class TestBuild:
@@ -17,4 +17,4 @@ class TestBuild:
 
         project_name = "gpu-utils"
         version = "0.2.1"
-        assert _get_dev_num(project_name, version) == 10
+        assert _get_next_dev_num(project_name, version) == 10

@@ -8,6 +8,7 @@ Assumptions:
 
 import re
 import shutil
+import sys
 import json
 import toml
 import invoke
@@ -157,6 +158,13 @@ def install(ctx, test: bool = False) -> None:
     project_name = _get_from_pyproject(["tool", "poetry", "name"])
     cmd = "pip install -U {} " + project_name
     cmd = cmd.format(" ".join([_index_url, _extra_url, "--pre"]) if test else "")
+    ctx.run(cmd)
+
+
+@invoke.task(clean, allow_unknown=True)
+def test(ctx) -> None:
+    pytest_args = sys.argv[sys.argv.index("test") + 1:]
+    cmd = "poetry run pytest " + " ".join(pytest_args)
     ctx.run(cmd)
 
 
