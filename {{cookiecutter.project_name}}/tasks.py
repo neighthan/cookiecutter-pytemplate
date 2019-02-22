@@ -146,7 +146,7 @@ def update_tasks(ctx) -> None:
 
 
 @invoke.task
-def install(ctx, test: bool = False) -> None:
+def install(ctx, version: str="", test: bool = False) -> None:
     """
     Install the latest version of the current project.
 
@@ -156,7 +156,7 @@ def install(ctx, test: bool = False) -> None:
     """
 
     project_name = _get_from_pyproject(["tool", "poetry", "name"])
-    cmd = "pip install -U {} " + project_name
+    cmd = "pip install -U {} " + project_name + f"=={version}" if version else ""
     cmd = cmd.format(" ".join([_index_url, _extra_url, "--pre"]) if test else "")
     ctx.run(cmd)
 
