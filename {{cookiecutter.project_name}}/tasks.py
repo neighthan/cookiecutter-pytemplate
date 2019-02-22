@@ -7,6 +7,7 @@ Assumptions:
 """
 
 import re
+import shutil
 import json
 import toml
 import invoke
@@ -25,6 +26,32 @@ _extra_url = "--extra-index-url https://pypi.org/simple"  # for dependencies
 
 
 @invoke.task
+def clean(ctx) -> None:
+    """
+    Remove all temporary files and directories.
+
+    Files / directories removed are:
+      * __pycache__ directories
+      * .coverage files
+      * build and dist directories
+    """
+
+    root_dir = Path(__file__).parent
+
+    rm_file_patterns = [".coverage"]
+
+    for file_pattern in rm_file_patterns:
+        for rm_file in root_dir.rglob(file_pattern):
+            rm_file.unlink()
+
+    rm_dir_patterns = ["__pycache__", "build", "dist"]
+
+    for dir_pattern in rm_dir_patterns:
+        for rm_dir in root_dir.rglob(dir_pattern):
+            shutil.rmtree(str(rm_dir))
+
+
+@invoke.task(clean, post=[clean])
 def publish(
     ctx, test: bool = False, install: bool = False, n_download_tries: int = 3
 ) -> None:
@@ -78,14 +105,8 @@ def publish(
         cmd = f"""
         cd "{project_root}"
 
-        rm -rf build
-        rm -rf dist
-
         poetry build
         twine upload {'--repository testpypi' if test else ''} dist/*
-
-        rm -rf build
-        rm -rf dist
         """
 
         ctx.run(cmd)
@@ -121,21 +142,6 @@ def update_tasks(ctx) -> None:
 
     with urlopen(github_url) as new_tasks_file:
         tasks_path.write_text(new_tasks_file.read().decode())
-
-
-@invoke.task
-def clean(ctx) -> None:
-    """
-    Remove all .pyc/.pyo files and __pycache__ directories.
-    """
-
-    root_dir = Path(__file__).parent
-
-    for cache_file in root_dir.rglob("*.py[co]"):
-        cache_file.unlink()
-
-    for cache_dir in root_dir.rglob("__pycache__"):
-        cache_dir.rmdir()
 
 
 @invoke.task

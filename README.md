@@ -36,9 +36,11 @@ Here we give an overview of the tools used in this template. See their respectiv
 We use [poetry] for package management and building.
 
 **Package Management**
+
 Packages are added to your project using `poetry add`; use the `-D` flag for dev dependencies. All dependencies (packages + allowed versions) will be stored in your `pyproject.toml` file. `poetry` also creates a virtual environment for your project to keep your packages isolated from those used in your other Python projects. Use `poetry shell` to start a shell in this environment when needed or `poetry run` to run a given command there. `poetry install --develop` is similar to `pip install -e .`.
 
 **Building**
+
 The `pyproject.toml` file (see [PEP 517] and [PEP 518]) should replace the old `setup.py` file + friends (e.g. `MANIFEST.in`). This allows other tools besides `distutils` and `setuptools` to be used for building. You can run `poetry build` to create your distribution and `poetry publish` to upload this to PyPI (or other repos that you configure), but see the [`invoke` section](###`invoke`-Tasks) below for our preferred method of building / publishing (which uses `poetry` internally).
 
 ### Formatting
