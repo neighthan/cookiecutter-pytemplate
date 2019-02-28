@@ -19,7 +19,7 @@ toml = "^0.10.0"
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^1.14"
-pytest = "^3.0"
+pytest = "^4.0"
 pytest-cov = "^2.6"
 twine = "^1.13"
 {%- if cookiecutter.include_invoke_tasks == "y" %}
