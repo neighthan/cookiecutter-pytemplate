@@ -164,8 +164,11 @@ def install(ctx, version: str="", test: bool = False) -> None:
 @invoke.task(clean, allow_unknown=True)
 def test(ctx) -> None:
     pytest_args = sys.argv[sys.argv.index("test") + 1:]
+    for i, arg in enumerate(pytest_args):
+        if " " in arg:
+            pytest_args[i] = f'"{arg}"'
     cmd = "poetry run pytest " + " ".join(pytest_args)
-    ctx.run(cmd)
+    ctx.run(cmd, pty=True)
 
 
 def _get_next_dev_num(project_name: str, current_version: str) -> int:
