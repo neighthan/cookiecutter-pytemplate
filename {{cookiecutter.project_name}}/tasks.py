@@ -146,7 +146,7 @@ def update_tasks(ctx) -> None:
 
 
 @invoke.task
-def install(ctx, version: str="", test: bool = False) -> None:
+def install(ctx, version: str = "", test: bool = False) -> None:
     """
     Install the latest version of the current project.
 
@@ -163,12 +163,23 @@ def install(ctx, version: str="", test: bool = False) -> None:
 
 @invoke.task(clean, allow_unknown=True)
 def test(ctx) -> None:
-    pytest_args = sys.argv[sys.argv.index("test") + 1:]
+    pytest_args = sys.argv[sys.argv.index("test") + 1 :]
     for i, arg in enumerate(pytest_args):
         if " " in arg:
             pytest_args[i] = f'"{arg}"'
     cmd = "poetry run pytest " + " ".join(pytest_args)
     ctx.run(cmd, pty=True)
+
+
+@invoke.task
+def install_jupyter_kernel(ctx, name: str, install_prefix: str = "") -> None:
+    """
+    :param name: name for the kernel
+    :param install_prefix: default = ~/.local
+    """
+    install_prefix = Path.home() / ".local"
+    cmd = f'poetry run python -m ipykernel install --prefix={install_prefix} --name "{name}"'
+    ctx.run(cmd)
 
 
 def _get_next_dev_num(project_name: str, current_version: str) -> int:
