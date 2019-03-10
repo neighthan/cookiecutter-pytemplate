@@ -182,6 +182,16 @@ def install_jupyter_kernel(ctx, name: str, install_prefix: str = "") -> None:
     ctx.run(cmd)
 
 
+@invoke.task(allow_unknown=True)
+def mypy(ctx) -> None:
+    mypy_args = sys.argv[sys.argv.index("mypy") + 1 :]
+    for i, arg in enumerate(mypy_args):
+        if " " in arg:
+            mypy_args[i] = f'"{arg}"'
+    cmd = "poetry run mypy " + " ".join(mypy_args)
+    ctx.run(cmd)
+
+
 def _get_next_dev_num(project_name: str, current_version: str) -> int:
     """
     Get 1 + the number of the latest dev version matching `current_version` w/o suffix.
@@ -204,7 +214,8 @@ def _get_next_dev_num(project_name: str, current_version: str) -> int:
             groups["major"] == current_version_groups["major"]
             and groups["minor"] == current_version_groups["minor"]
             and groups["micro"] == current_version_groups["micro"]
-            and groups["suffix"] and groups["suffix"].startswith("dev")
+            and groups["suffix"]
+            and groups["suffix"].startswith("dev")
         ):
             dev_num = int(groups["suffix"].replace("dev", "")) + 1
             break
