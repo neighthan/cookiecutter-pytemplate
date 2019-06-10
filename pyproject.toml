@@ -6,6 +6,7 @@ authors = ["Nathan Hunt <neighthan.hunt@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/neighthan/cookiecutter-pytemplate"
+include = ["pyproject.toml"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
