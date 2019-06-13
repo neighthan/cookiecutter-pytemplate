@@ -1,4 +1,4 @@
-*.egg_info
+*.egg[_-]info
 __pycache__
 .coverage*
 !.coveragerc
